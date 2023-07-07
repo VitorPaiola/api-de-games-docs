@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Loja de games</title>
+
+    <h2>Login</h2>
+    <input type="text" name="email" id="email" placeholder="maria@gmail.com"><br>
+    <input type="password" name="password" , id="password" placeholder="*********">
+    <button type="button" onclick="login()">Entrar</button>
+
+    <hr>
+    <h4>Lista de games</h4>
+    <ul id="games"></ul>
+    <hr>
+    <h4>Novo game</h4>
+    <input type="text" name="title" id="title" placeholder="Título"> <br>
+    <input type="number" name="year" id="year" placeholder="Ano"><br>
+    <input type="number" name="price" id="price" placeholder="Preço"><br>
+    <button type="button" onclick="createGame()">Criar</button>
+    <hr>
+    <h4>Editar game</h4>
+    <input type="text" name="idEdit" id="idEdit" placeholder="ID" readonly><br>
+    <input type="text" name="titleEdit" id="titleEdit" placeholder="Título"><br>
+    <input type="number" name="yearEdit" id="yearEdit" placeholder="Ano"><br>
+    <input type="number" name="priceEdit" id="priceEdit" placeholder="Preço"><br>
+    <button type="button" onclick="updateGame()">Editar</button>
+
+</head>
+
+<body></body>
+
+<script src="https://cdn.jsdelivr.net/npm/axios@1.1.2/dist/axios.min.js"></script>
+
+<script>
+
+    // TODO: Criando um objeto de configuração de cabeçalho p/ requisição que o axios vai fazer
+    // Sexta Parte
+    var axiosConfig = {
+        headers: {
+            Authorization: "Bearer " + localStorage.getItem("token")
+        }
+    }
+
+    function login() {
+        // Pegando o campo do input via id
+        var emailField = document.getElementById("email");
+        var passwordField = document.getElementById("password");
+
+        // Pegando os valores campo do input
+        var email = emailField.value;
+        var password = passwordField.value;
+
+        axios.post("http://localhost:45678/auth", {
+            email,
+            password
+        }).then(res => {
+            var token = res.data.token;
+            // localStorage é um pequeno lugar no seu navegador que serve p/ armazenar dados de forma persistente.
+            // Ou seja, são dados que vão permanecer salvos no navegador do usuário mesmo se ele desligar o computador e ligar novamente.
+            // O único momento em que o localStorage é deletado é quando o usuário deleta o (cash, histórico do navegador e/ou limpa o navegador)
+            localStorage.setItem("token", token)
+            axiosConfig.headers.Authorization = "Bearer " + localStorage.getItem("token")
+        }).catch(err => {
+            alert("Login incorreto")
+        })
+
+    }
+
+    // Segunda Parte
+    function createGame() {
+        // Pegando o campo do input via id
+        var titleInput = document.getElementById("title")
+        var yearInput = document.getElementById("year")
+        var priceInput = document.getElementById("price")
+
+        // Pegando os valores passados no input e enviar para nossa API
+        var game = {
+            title: titleInput.value,
+            year: yearInput.value,
+            price: priceInput.value
+        }
+
+        // Enviando esses dados para nossa API. Primeiro: caminho, Segundo: dados
+        axios.post("http://localhost:45678/game", game, axiosConfig).then(response => {
+
+            // Em caso de sucesso
+            if (response.status == 200) {
+                alert("Game cadastrado!")
+            }
+
+            // Em caso de falha
+        }).catch(error => {
+            console.log(error);
+        })
+
+    }
+
+    // Terceira Parte
+    function deleteGame(listItem) {
+        var id = listItem.getAttribute("data-id"); // Recuperando o dado do id naquele campo específico
+        axios.delete("http://localhost:45678/game/" + id, axiosConfig).then(response => {
+            alert("Game deletado!")
+        }).catch(error => {
+            console.log(error);
+        })
+    }
+
+    // Quarta Parte
+    function loadForm(listItem) {
+        var id = listItem.getAttribute("data-id"); // Recuperando o dado do id
+        var title = listItem.getAttribute("data-title") // Recuperando o dado do title
+        var year = listItem.getAttribute("data-year") // Recuperando o dado do year
+        var price = listItem.getAttribute("data-price") // Recuperando o dado do price
+        document.getElementById("idEdit").value = id
+        document.getElementById("titleEdit").value = title
+        document.getElementById("yearEdit").value = year
+        document.getElementById("priceEdit").value = price
+    }
+
+    // Quinta Parte
+    function updateGame() {
+        var idInput = document.getElementById("idEdit")
+        var titleInput = document.getElementById("titleEdit")
+        var yearInput = document.getElementById("yearEdit")
+        var priceInput = document.getElementById("priceEdit")
+
+        var game = {
+            title: titleInput.value,
+            year: yearInput.value,
+            price: priceInput.value
+        }
+
+        var id = idInput.value
+
+        axios.put("http://localhost:45678/game/" + id, game, axiosConfig).then(response => {
+            if (response.status == 200) {
+                alert("Game atualizado!")
+            }
+        }).catch(error => {
+            console.log(error);
+        })
+
+    }
+
+    // Primeira Parte
+    axios.get("http://localhost:45678/games", axiosConfig).then(response => {
+        var games = response.data
+        var list = document.getElementById("games")
+
+        games.forEach(game => { // Percorrendo todos os meus dados
+            var item = document.createElement("li") // Criei meu item de lista
+
+            // (Atributos customizados) - Adicionando a variável (item) todos esses campos
+            item.setAttribute("data-id", game.id)
+            item.setAttribute("data-title", game.title)
+            item.setAttribute("data-year", game.year)
+            item.setAttribute("data-price", game.price)
+
+            item.innerHTML = game.id + " - " + game.title + " $ " + game.price // Defini o conteúdo dele
+
+            // Criação de um botão para deletar dinamicamente
+            var deleteBtn = document.createElement("button");
+            deleteBtn.innerHTML = "Deletar" // Renderizando no botão o texto (Deletar)
+            deleteBtn.addEventListener("click", function () {
+                deleteGame(item) // Deletando um item da lista através do evento de (click)
+            }) // Linkar uma função com esse botao. Com a function() ele não executa direto a função
+
+            // Criação de um botão para editar dinamicamente
+            var editBtn = document.createElement("button");
+            editBtn.innerHTML = "Editar" // Renderizando no botão o texto (Editar)
+            editBtn.addEventListener("click", function () {
+                loadForm(item) // Editando um item da lista através do evento de (click)
+            }) // Linkar uma função com esse botao. Com a function() ele não executa direto a função
+
+
+            item.appendChild(deleteBtn) // Adicionei o botão na lista
+            item.appendChild(editBtn) // Adicionei o botão na lista
+
+            list.appendChild(item) // Adicionei o item na lista
+        })
+
+    }).catch(error => {
+        console.log(error);
+    })
+
+</script>
+
+</html>
